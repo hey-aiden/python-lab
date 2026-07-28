@@ -12,7 +12,8 @@
 
 按这个顺序阅读，能最快地上手实际开发：
 
-1. **先建立工作流** → 第 1-5 章（Part I）
+1. **先建立工作流** → Part I（第 0-5 章）
+   - 了解 pyenv / uv / poetry 三种工具模式
    - 学会用 `uv` 创建项目、运行脚本、安装依赖
    - 理解 `pyenv` / `uv` / `venv` 的关系
    - 了解项目目录结构和跨文件引用方式
@@ -33,6 +34,7 @@
 
 | 章节 | 内容 | 链接 |
 |------|------|------|
+| 0 | pyenv / uv / poetry 三种工作模式 | [阅读](part1-workflow/00-tool-modes.md) |
 | 1 | 完整开发路径：从 0 到运行 | [阅读](part1-workflow/01-quickstart.md) |
 | 2 | Python 开发方式与工具链（pyenv/uv/venv） | [阅读](part1-workflow/02-toolchain.md) |
 | 3 | 项目常见目录结构 | [阅读](part1-workflow/03-project-structure.md) |

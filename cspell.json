@@ -59,7 +59,9 @@
     "AsyncClient",
     "pythonic",
     "dotenv",
-    "setuptools"
+    "setuptools",
+    "pypoetry",
+    "virtualenvs"
   ],
   "ignoreWords": [],
   "ignorePaths": [

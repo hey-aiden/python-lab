@@ -46,6 +46,55 @@ my-project/
 └── hello.py
 ```
 
+#### `uv init` 做了什么？
+
+```
+uv init my-project
+  │
+  ├─ 1. 创建目录 my-project/
+  ├─ 2. 检测当前系统的 Python 解释器
+  │     which python3 → 找到系统或 pyenv 管理的 Python
+  │     记录其版本（如 3.12.4）
+  ├─ 3. 生成 pyproject.toml
+  │     ├─ name = "my-project"（目录名）
+  │     ├─ version = "0.1.0"
+  │     ├─ requires-python = ">=3.11"（当前 Python 的 minor 版本）
+  │     ├─ dependencies = []（空列表）
+  │     └─ [build-system] 使用 hatchling
+  ├─ 4. 生成 README.md（模板内容，包含项目名和描述）
+  ├─ 5. 生成 hello.py（示例入口文件）
+  ├─ 6. 生成 .python-version（记录当前 Python 版本）
+  ├─ 7. 生成 .gitignore（如果不存在）
+  └─ 8. 不生成 .venv/ 和 uv.lock — 这些在第一次 uv sync / uv add 时才创建
+```
+
+**uv init 干了什么、没干什么：**
+
+| 操作 | 做了？ | 说明 |
+|------|:------:|------|
+| 创建 `pyproject.toml` | ✅ | 项目身份证 |
+| 创建 `README.md` | ✅ | 模板内容 |
+| 创建 `hello.py` | ✅ | 示例入口 |
+| 创建 `.python-version` | ✅ | 锁定 Python 版本 |
+| 创建 `.gitignore` | ✅ | 忽略 `.venv/`、`__pycache__/` 等 |
+| 创建 `.venv/` | ❌ | 不创建，等到 `uv sync` 或 `uv add` 时才创建 |
+| 创建 `uv.lock` | ❌ | 不创建，`uv lock` 或 `uv sync` 时才生成 |
+| `git init` | ❌ | 不初始化 Git 仓库 |
+| 安装依赖 | ❌ | 不安装任何包 |
+
+> **核心理念**：`uv init` 只做**脚手架生成**，不做**环境搭建**。`.venv/` 和 `uv.lock` 在第一次 `uv sync` 或 `uv add` 时才懒加载创建。
+
+**关键参数：**
+
+| 参数 | 作用 |
+|------|------|
+| `uv init my-project` | 创建新目录 + 脚手架 |
+| `uv init` | 在当前目录生成脚手架 |
+| `uv init --name "my-app" .` | 指定项目名（不同目录名） |
+| `uv init --lib` | 创建库项目（含 `src/` 布局） |
+| `uv init --app` | 创建应用项目（默认） |
+| `uv init --force` | 覆盖已有 `pyproject.toml`（危险） |
+
 #### `pyproject.toml` 字段详解
 
 > 类似 `package.json`，但字段更多、更结构化。以下是逐段拆解。
@@ -202,13 +251,89 @@ CMD ["uv", "run", "gunicorn", "src.app:app"]
 
 #### 发布到 PyPI
 
-```bash
-uv build                    # 构建 wheel 包
-uv publish                  # 发布到 PyPI（类似 npm publish）
-```
+发布前需要三样东西：**正确的 `pyproject.toml`**、**PyPI 账号**、**API Token**。
+
+**① `pyproject.toml` 必填字段：**
 
 ```toml
-# pyproject.toml 中需要额外配置
+[project]
+name = "my-package"              # PyPI 上唯一的名字，先到先得
+version = "0.1.0"                # 语义版本，每次发布必须递增
+description = "一句话描述"         # PyPI 搜索页展示
+readme = "README.md"             # 项目主页渲染 README
+requires-python = ">=3.11"       # 支持的 Python 版本范围
+license = { text = "MIT" }       # 许可证（PyPI 要求）
+authors = [                      # 作者/维护者
+    { name = "Your Name", email = "you@example.com" }
+]
+# 可选但推荐：
+classifiers = [                  # PyPI 分类标签，方便用户搜索
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+]
+urls = { Homepage = "https://github.com/you/my-package" }
+```
+
+**② 获取 API Token：**
+
+```
+1. 注册 https://pypi.org （或测试环境 https://test.pypi.org）
+2. Account Settings → API tokens → Add API token
+3. 复制 token（只显示一次！）
+```
+
+**③ 构建 + 发布：**
+
+```bash
+# 构建包（生成 dist/ 目录，含 .tar.gz 和 .whl）
+uv build
+
+# 发布到 PyPI（自动从环境变量读取 token）
+uv publish --token YOUR_TOKEN_HERE
+# 或设置环境变量（推荐，避免 token 留在 shell 历史中）：
+export UV_PUBLISH_TOKEN=pypi-xxxxxxxx
+uv publish
+
+# 先发布到 TestPyPI 验证：
+uv publish --publish-url https://test.pypi.org/legacy/ \
+           --token YOUR_TEST_TOKEN
+# 然后安装验证：
+uv pip install -i https://test.pypi.org/simple/ my-package
+```
+
+**④ 完整发布流程：**
+
+```bash
+# 1. 更新版本号
+#    pyproject.toml: version = "0.1.0" → "0.1.1"
+
+# 2. 构建
+uv build                        # → dist/my_package-0.1.1.tar.gz
+                                # → dist/my_package-0.1.1-py3-none-any.whl
+
+# 3. 发布（token 从环境变量读取）
+export UV_PUBLISH_TOKEN=pypi-xxxxxxxx
+uv publish
+
+# 4. 验证
+uv pip install my-package       # 从 PyPI 安装
+python -c "import my_package"   # 确认能导入
+```
+
+**常见坑点：**
+
+| 坑 | 现象 | 解决 |
+|----|------|------|
+| name 已被占用 | `403 The name 'xxx' is already registered` | 换一个包名 |
+| 版本号不递增 | `403 File already exists` | 递增 version 字段 |
+| 缺少必填字段 | `400 Missing required field` | 补上 license、authors |
+| token 权限不足 | `403 Invalid or non-existent authentication` | 确认 token 没有过期，且勾选了 "Upload packages" |
+| 忘记更新 README | PyPI 页面还是旧内容 | 发布前确认 `readme = "README.md"` 存在 |
+
+> **最佳实践**：不要直接发布到 PyPI——先发布到 [TestPyPI](https://test.pypi.org) 验证一切正常，再发布到正式 PyPI。Token 用环境变量而非命令行参数，避免泄漏到 shell 历史。
+
+```toml
+# pyproject.toml 中注册 CLI 入口（可选）
 [project.scripts]
-my-cli = "my_package.cli:main"   # 注册 CLI 入口（类似 npm bin）
+my-cli = "my_package.cli:main"   # pip install 后直接敲 my-cli 就能用
 ```

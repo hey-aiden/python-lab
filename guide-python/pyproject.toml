@@ -19,4 +19,4 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/app"]
+packages = ["src/app", "src/type_use"]

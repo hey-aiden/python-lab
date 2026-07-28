@@ -79,7 +79,7 @@ uv run python -m my_project.main
 
 ```python
 #!/usr/bin/env python3
-# 文件第一行加 shebang，然后 chmod +x script.py，就能 ./script.py 运行
+# 文件第一行加 shebang(就是#!符号)，然后 chmod +x script.py，就能 ./script.py 运行
 ```
 
 #### `uv run` 做了什么？
@@ -87,11 +87,44 @@ uv run python -m my_project.main
 ```
 uv run python hello.py
   │
-  ├─ 1. 找到项目根目录（有 pyproject.toml 的地方）
-  ├─ 2. 确认 .venv/ 存在，没有则自动创建
-  ├─ 3. 用 .venv/bin/python3 执行 hello.py
-  └─ 结果：用的永远是项目自己的 Python + 依赖，不污染系统环境
+  ├─ 1. 向上遍历目录，找到项目根目录（有 pyproject.toml / .python-version / uv.lock 的地方）
+  ├─ 2. 读取 .python-version（或 pyproject.toml 中的 requires-python），确认需要哪个 Python
+  ├─ 3. 检查 .venv/ 存在且 Python 版本一致？
+  │     ├─ 是 → 跳过
+  │     └─ 否 → uv 自动创建/重建 .venv/（等价 uv venv）
+  ├─ 4. 将 .venv/bin 注入到 PATH 的最前面
+  │     不需要 source .venv/bin/activate，命令执行期间自动生效
+  ├─ 5. 设置环境变量：
+  │     VIRTUAL_ENV=.venv
+  │     PATH=.venv/bin:$PATH
+  │     以及其他 Python 需要的环境变量
+  ├─ 6. 以子进程方式执行 hello.py
+  │     uv 本身不执行，而是 fork 出一个子进程跑真正的命令
+  └─ 7. 命令退出后，环境恢复原样（没有"激活"副作用）
 ```
+
+**核心：uv run 不是 shell 包装器**
+
+| | `source .venv/bin/activate` | `uv run` |
+|---|---|---|
+| 生效范围 | 当前 shell 会话（全局污染） | 只影响被执行的命令 |
+| 退出方式 | `deactivate` | 命令结束自动恢复 |
+| 能否执行非 Python 命令 | 可以 | 可以（`uv run ruff check` 等） |
+| 是否需要记忆激活 | 容易忘记（常见坑） | 不需要 |
+
+> `uv run pytest` 本质上等价于 `.venv/bin/pytest`，但省去了你先激活环境的步骤。任何安装在 `.venv/bin/` 下的命令都可以通过 `uv run <命令>` 直接调用。
+
+**`uv run` 适用场景**
+
+| 场景 | 命令 |
+|------|------|
+| 运行 Python 脚本 | `uv run python hello.py` |
+| 运行模块（src 布局） | `uv run python -m app.main` |
+| 运行测试 | `uv run pytest` |
+| 运行 linter | `uv run ruff check .` |
+| 运行类型检查 | `uv run mypy src/` |
+| 构建包 | `uv build`（直接 uv build，不需要 uv run） |
+| 安装新包 | `uv add httpx`（直接 uv add，不需要 uv run） |
 
 #### 场景速查
 

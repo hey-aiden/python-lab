@@ -28,6 +28,31 @@
 
 ---
 
+## ⚠️ 高频坑点（先看一眼，少踩无数坑）
+
+| # | 坑 | 正确做法 |
+|---|----|----------|
+| 1 | `list = [1,2,3]` | ❌ 用内置函数名做变量 → 后面 `list()` 炸掉 |
+| | | ✅ 用 `items`、`data`、`names` 等描述性名字 |
+| 2 | `set = {1,2,3}` | ❌ 同样遮蔽 `set()` |
+| | | ✅ 用 `tags`、`unique_ids` 等 |
+| 3 | `frozenset = frozenset({...})` | ❌ 赋值号右边 `frozenset(...)` 被当成未初始化的局部变量 |
+| | | ✅ 变量改名 `frozen = frozenset({...})` |
+| 4 | `my_set[0]` | ❌ set 无序，不支持索引 |
+| | | ✅ `value in my_set` 判断成员 / `for v in my_set` 遍历 |
+| 5 | Tab 和空格混用缩进 | ❌ Python 禁止混用，直接 `IndentationError` |
+| | | ✅ 统一用 4 空格，配 `"editor.insertSpaces": true` |
+| 6 | `import my-package` | ❌ Python 把 `-` 当减号 |
+| | | ✅ 包名用下划线 `import my_package`（目录同理） |
+| 7 | 可变对象做默认参数 | ❌ `def f(lst=[])` 所有调用共享同一个列表 |
+| | | ✅ `def f(lst=None): if lst is None: lst = []` |
+| 8 | `.venv/` 没激活就装包 | ❌ `pip install xxx` 装到了系统 Python |
+| | | ✅ 用 `uv add xxx` / `uv run`，永远不用手动激活 |
+
+> 详细说明见各章：坑 1-4 → [第 6 章](part2-language/06-data-types.md) · 坑 5 → [第 10 章](part3-appendix/10-cheatsheet.md) · 坑 6 → [第 4 章](part1-workflow/04-imports.md) · 坑 7 → [第 10 章](part3-appendix/10-cheatsheet.md) · 坑 8 → [第 2 章](part1-workflow/02-toolchain.md)
+
+---
+
 ## 📑 目录
 
 ### Part I：先跑起来 —— 建立 Python 项目工作流
@@ -49,6 +74,7 @@
 | 7 | 变量、赋值与可变性 | [阅读](part2-language/07-variables.md) |
 | 8 | 可迭代对象与枚举 | [阅读](part2-language/08-iterables.md) |
 | 9 | 错误捕获 | [阅读](part2-language/09-errors.md) |
+| 11 | 模块导入规则与标准库速览 | [阅读](part2-language/11-standard-library.md) |
 
 ### Part III：附录 —— 速查与工具链汇总
 

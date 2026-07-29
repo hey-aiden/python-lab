@@ -12,11 +12,12 @@
 
 按这个顺序阅读，能最快地上手实际开发：
 
-1. **先建立工作流** → Part I（第 0-5 章）
+1. **先建立工作流** → Part I（第 0-6 章）
    - 了解 pyenv / uv / poetry 三种工具模式
    - 学会用 `uv` 创建项目、运行脚本、安装依赖
    - 理解 `pyenv` / `uv` / `venv` 的关系
    - 了解项目目录结构和跨文件引用方式
+   - **学会阅读任何 Python 项目的通用方法**
 
 2. **理解核心语言** → 第 6-9 章（Part II）
    - 数据类型、变量、可变性
@@ -65,6 +66,7 @@
 | 3 | 项目常见目录结构 | [阅读](part1-workflow/03-project-structure.md) |
 | 4 | 跨目录/跨文件/跨项目引用 | [阅读](part1-workflow/04-imports.md) |
 | 5 | 项目初始化与部署 | [阅读](part1-workflow/05-init-deploy.md) |
+| 6 | 如何阅读一个 Python 项目 | [阅读](part1-workflow/06-read-project.md) |
 
 ### Part II：语言核心 —— 理解 Python 语言本身
 

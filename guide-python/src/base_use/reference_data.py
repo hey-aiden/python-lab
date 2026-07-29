@@ -32,7 +32,7 @@ def use_tuple():
     print(coords[-1])  # 5
 
 
-# 字典: 键值对
+# 字典: 键值对 
 def use_dict():
     print("use dict:")
     user = {"name": "John", "age": 30}  # ⚠️ 不要用 dict 做变量名

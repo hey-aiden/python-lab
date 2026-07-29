@@ -21,6 +21,7 @@ Python 启动时自动加载 `builtins` 模块，以下函数和类型**全局�
 | 属性 | `getattr()` `setattr()` `hasattr()` `delattr()` | 对象属性反射 |
 | 空值 | `None` `True` `False` | 字面量 |
 | 异常 | `Exception` `ValueError` `TypeError` ... | 常见异常类 |
+| 调试 | `dir()` `help()` | 探索对象 / 查看文档 |
 
 ```python
 # 这些都不需要 import
@@ -30,6 +31,67 @@ print(sorted(numbers))         # [1, 2, 3]
 print(any([False, True]))      # True（对标 JS some）
 print(isinstance(42, int))     # True
 ```
+
+### 1.1 `dir()` — 查看对象有哪些属性和方法
+
+`dir(obj)` 列出对象上所有可用的名字（属性、方法、变量），是探索陌生对象的第一工具。
+
+```python
+# 查看当前模块有哪些名字
+print(dir())          # ['__builtins__', '__name__', ...]
+
+# 查看某个对象有哪些方法
+print(dir("hello"))
+# ['capitalize', 'casefold', 'center', 'count', 'encode', 'endswith',
+#  'find', 'format', 'index', 'isalnum', 'isalpha', 'islower', 'join',
+#  'lower', 'lstrip', 'replace', 'rfind', 'split', 'startswith', 'strip',
+#  'upper', 'zfill', ...]
+
+# 只看公开方法名（去掉 __dunder__ 和 _private）
+[name for name in dir("hello") if not name.startswith("_")]
+# ['capitalize', 'casefold', 'center', 'count', ...]
+
+# 查看标准库模块导出了什么
+import json
+print([name for name in dir(json) if not name.startswith("_")])
+# ['JSONDecodeError', 'JSONDecoder', 'JSONEncoder', 'dump', 'dumps', 'load', 'loads', ...]
+```
+
+> 💡 `dir()` 是最高频的探索命令。遇到不认识的类型，先 `dir(obj)` 看有什么方法，再去查文档。
+
+### 1.2 `help()` — 查看文档
+
+`help(obj)` 打印对象的 docstring，比 `dir()` 更进一步：不仅告诉你**有哪些名字**，还告诉你**每个是干什么的、怎么用**。
+
+```python
+help(str)      # 查看 str 类的完整文档（很长，按 q 退出）
+
+help(str.upper)       # 只看某个方法
+# Help on method_descriptor:
+#
+# upper(self, /)
+#     Return a copy of the string converted to uppercase.
+
+import json
+help(json.loads)
+# Help on function loads in module json:
+#
+# loads(s, *, cls=None, object_hook=None, ...)
+#     Deserialize s (a str, bytes or bytearray instance containing a JSON document) ...
+```
+
+| 工具 | 回答什么问题 | 类比 Node.js |
+|------|-------------|-------------|
+| `dir(obj)` | 这东西**有哪些**方法/属性？ | `Object.keys(obj)` + `Object.getOwnPropertyNames(proto)` |
+| `help(obj)` | 这个方法是**怎么用**的？参数什么意思？ | `node -e "console.log(fs.readFile.toString())"` 然后自己看源码 |
+| `type(obj)` | 这东西**是什么类型**？ | `typeof obj` |
+
+> 💡 `dir()` + `help()` 组合拳：先用 `dir()` 快速浏览有哪些方法，再用 `help(obj.method)` 查看具体怎么用。学新库的时候尤其高效——不需要切到浏览器查文档。`help()` 在 `python -i`（交互模式）或 Jupyter 里用 `?` 更方便：
+> ```python
+> >>> str.upper?
+> Signature: str.upper()
+> Docstring: Return a copy of the string converted to uppercase.
+> ```
 
 ---
 

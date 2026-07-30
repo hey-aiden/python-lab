@@ -264,6 +264,47 @@ def profile(user: dict = Depends(verify_cookie)):  # ← 可拿到 user dict
 | `@router.get(dependencies=[...])` | 该端点 | ❌ | 不加即可 |
 | `def fn(x = Depends(...))` | 该端点 | ✅ | 不加即可 |
 
+### 4.1 依赖执行规则
+
+端点级 `dependencies=[]` 不是和 router 级"比优先级"，而是**替换**。
+
+```
+app 级 dependencies        → 永远执行（端点无法跳过）
+  └─ router 级 dependencies → 默认执行，端点可用 dependencies=[] 清空
+       └─ 端点级 dependencies → 追加到 router 级之后执行
+```
+
+```python
+# router 级：v1 下默认都要鉴权
+router = APIRouter(dependencies=[Depends(verify_cookie)])
+
+# api/v1/router.py — 演示不同 dependency 配置
+from app.api.deps import verify_admin, verify_cookie
+
+# 端点 A — 继承 router 级，verify_cookie 自动执行
+@router.get("/profile")
+def profile(): ...
+
+# 端点 B — dependencies=[] 清空 router 级依赖，鉴权跳过
+@router.get("/stream_sse", dependencies=[])
+def stream(): ...
+
+# 端点 C — 端点自己加依赖，和 router 级合并执行
+# verify_admin 定义在 app/api/deps.py，和 verify_cookie 一样是普通 Python 函数
+@router.get("/admin", dependencies=[Depends(verify_admin)])
+def admin(): ...
+# 执行顺序：verify_cookie（router 级） → verify_admin（端点级）
+```
+
+| 场景 | router 级 | 端点声明 | 实际执行 |
+|------|----------|---------|---------|
+| 继承 | `[verify_cookie]` | 不写 | `verify_cookie` |
+| 清空 | `[verify_cookie]` | `dependencies=[]` | 无 |
+| 追加 | `[verify_cookie]` | `dependencies=[verify_admin]` | `verify_cookie` → `verify_admin` |
+| 参数注入 | `[verify_cookie]` | `user = Depends(verify_cookie)` | `verify_cookie` 执行一次，返回值注入 `user` |
+
+> `EventSource`（SSE）API 不能自定义请求头，无法携带 cookie，SSE 端点通常需要 `dependencies=[]` 公开，或用 URL token 独立鉴权。
+
 ---
 
 ## 5. 依赖函数写法

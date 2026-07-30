@@ -24,12 +24,22 @@ import logging
 import time
 
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 
 logger = logging.getLogger(__name__)
 
 
 def setup_middleware(app: FastAPI) -> None:
     """注册所有全局中间件。在 main.py 中调用一次即可。"""
+
+    # CORS — 允许浏览器跨域访问（SSE EventSource 必需）
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],       # 生产环境改为具体域名，如 ["http://localhost:3000"]
+        allow_credentials=True,    # 允许携带 cookie
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     @app.middleware("http")
     async def log_request_time(request: Request, call_next):

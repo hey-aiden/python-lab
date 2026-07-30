@@ -42,3 +42,16 @@ def start():
     import uvicorn
 
     uvicorn.run("app.main:app", reload=True)
+
+
+def run():
+    """生产服务器入口."""
+    import uvicorn
+
+    uvicorn.run(
+        "app.main:app",
+        host="0.0.0.0",   # 绑定所有网卡，容器外才能访问
+        port=8000,
+        workers=4,         # 4 个 worker 进程
+        log_level="info",
+    )

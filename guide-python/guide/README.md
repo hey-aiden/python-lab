@@ -83,6 +83,7 @@
 | 章节 | 内容 | 链接 |
 |------|------|------|
 | 10 | 更多差异速查（与 JS 对照） | [阅读](part3-appendix/10-cheatsheet.md) |
+| 12 | SQL 操作：原生 SQL vs ORM | [阅读](part3-appendix/12-sql-operate.md) |
 
 ---
 

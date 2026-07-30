@@ -2,6 +2,8 @@
 
 from fastapi import HTTPException, Request
 
+from app.core.db import get_db  # noqa: F401  # 重导出，方便统一从 deps 导入
+
 
 def verify_cookie(request: Request) -> dict:
     """从 cookie 中读取 session 字段，验证是否有效.

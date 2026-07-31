@@ -19,44 +19,68 @@ def create_robot():
 
 
 def use_message_list():
-    # 初始化 DeepSeek 模型
     MODEL = ChatDeepSeek(
         model=os.getenv("DEEPSEEK_MODEL"),
         temperature=0.7,
     )
-    # 创建智能体
     agent = create_agent(
         model=MODEL,
         system_prompt="你是一个友好助人的AI助手",
     )
-    message_list = []
+
+    # thread_id → message_list 映射表，替代 MemorySaver 实现会话隔离
+    sessions: dict[str, list] = {}
+
+    def get_session(session_id: str) -> list:
+        """获取或创建 session 对应的 message_list"""
+        if session_id not in sessions:
+            sessions[session_id] = []
+            print(f"📂 新建会话: {session_id}")
+        return sessions[session_id]
+
+    # 当前会话
+    current_id = "default"
+    message_list = get_session(current_id)
 
     while True:
-        # 获取用户输入内容
-        user_msg = input("\n你:")
+        prompt = f"\n[{current_id}] 你: "
+        user_msg = input(prompt)
 
-        # 检查退出条件
         if user_msg.lower() in ["exit", "quit", "退出"]:
             print("👋 再见！")
             break
 
-        # 用户未输入则跳过 -  # 去掉首尾空白 → 如果结果为空
         if not user_msg.strip():
+            continue
+
+        # 切换会话命令
+        if user_msg.startswith("/switch "):
+            target_id = user_msg[len("/switch "):].strip()
+            if target_id not in sessions:
+                print(f"⚠️  会话 '{target_id}' 不存在，创建新会话")
+            current_id = target_id
+            message_list = get_session(current_id)
+            continue
+
+        # 查看所有会话
+        if user_msg == "/sessions":
+            print("当前会话列表：")
+            for sid, msgs in sessions.items():
+                marker = " ←" if sid == current_id else ""
+                print(f"  {sid}: {len(msgs)} 条消息{marker}")
             continue
 
         message_list.append({"role": "user", "content": user_msg})
 
         try:
             result = agent.invoke({"messages": message_list})
-            # 提取助手的回复
             ai_response = result["messages"][-1].content
 
-            # 追加AI消息
+            # 追加 AI 消息
             message_list.append({"role": "assistant", "content": ai_response})
 
             print(f"🤖 助手：{ai_response}")
         except (KeyboardInterrupt, SystemExit):
-            # 用户主动退出，向上抛出让外层处理
             raise
         except Exception as e:  # noqa: BLE001 — 终端机器人需要兜底，不能因单次 API 调用异常而退出
             print(f"❌ 出错了：{e}")

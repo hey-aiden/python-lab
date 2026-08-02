@@ -6,4 +6,5 @@ assets
 .git
 .gitignore
 *.md
+!README.md
 .pytest_cache

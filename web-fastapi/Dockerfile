@@ -7,8 +7,7 @@ WORKDIR /app
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 # 先复制依赖文件，利用 Docker 层缓存
-# README.md 也是必需的：pyproject.toml 中 readme 字段指向它，uv sync 构建时需要
-COPY pyproject.toml uv.lock README.md ./
+COPY pyproject.toml uv.lock ./
 
 # 安装依赖到虚拟环境（不安装 dev 依赖）
 RUN uv sync --frozen --no-dev --no-editable

@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     api_key_deepseek: str
     model_deepseek: str = "deepseek-chat"
     temperature: float = 0.0
+    db_url: str
 
 
 settings = Settings()

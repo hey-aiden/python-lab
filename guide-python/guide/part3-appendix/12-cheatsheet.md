@@ -2,7 +2,7 @@
 
 > 📖 本章是快速查阅表，覆盖函数、类、模块、异步、编码风格等，适合在需要时翻阅，不必从头读到尾。
 
-### 10.1 函数
+### 12.1 函数
 
 ```python
 # JS:  function add(a, b=0) { return a + b; }
@@ -33,7 +33,7 @@ params = [1, 2]
 add(*params)              # 同 JS 的 add(...params)
 ```
 
-### 10.2 类与 OOP
+### 12.2 类与 OOP
 
 ```python
 class Animal:
@@ -58,7 +58,7 @@ dog = Dog("Rex")                        # 先创建实例
 isinstance(dog, Animal)                 # True
 ```
 
-### 10.3 模块系统
+### 12.3 模块系统
 
 ```python
 # JS:  import React from 'react'
@@ -78,7 +78,7 @@ import numpy as np                     # 导入并取别名（常见约定）
 __all__ = ["public_api", "another_fn"] # 控制 from module import * 的行为
 ```
 
-### 10.4 异步编程 — `Promise` vs `async/await`
+### 12.4 异步编程 — `Promise` vs `async/await`
 
 ```python
 # JS:
@@ -102,7 +102,7 @@ async def fetch_data():
 asyncio.run(fetch_data())
 ```
 
-### 10.5 没有的东西（以及替代方案）
+### 12.5 没有的东西（以及替代方案）
 
 | JS 特有的东西 | Python 的替代 |
 |---------------|---------------|
@@ -121,7 +121,7 @@ asyncio.run(fetch_data())
 | `for (let i = 0; i < n; i++)` | `for i in range(n):` |
 | `window` / `document` | 不存在，Python 不走浏览器 |
 
-### 10.6 包管理与工具链速览
+### 12.6 包管理与工具链速览
 
 | 类别 | 推荐工具 | 对标 JS |
 |------|----------|---------|
@@ -134,7 +134,7 @@ asyncio.run(fetch_data())
 | 发布 | `uv publish` | npm publish |
 | 环境变量 | `.env` + `python-dotenv` | dotenv |
 
-### 10.7 编码风格速记
+### 12.7 编码风格速记
 
 ```python
 # PEP 8 — Python 编码风格指南（类似 Airbnb JS Style Guide）
@@ -165,7 +165,7 @@ reduce(lambda acc, x: acc + x, [1, 2, 3], 0)   # 6
 sum([1, 2, 3])                                  # 6
 ```
 
-### 10.8 编辑器配置（Cursor / VS Code）
+### 12.8 编辑器配置（Cursor / VS Code）
 
 推荐使用 **Ruff 扩展**，一个插件替代 Prettier + ESLint + import 排序：
 

@@ -24,7 +24,7 @@
    - 迭代、枚举、推导式
    - 错误处理
 
-3. **查阅速查表** → 第 10 章（Part III）
+3. **查阅速查表** → 第 12 章（Part III）
    - 与 JavaScript 的语法对照
 
 ---
@@ -49,8 +49,10 @@
 | | | ✅ `def f(lst=None): if lst is None: lst = []` |
 | 8 | `.venv/` 没激活就装包 | ❌ `pip install xxx` 装到了系统 Python |
 | | | ✅ 用 `uv add xxx` / `uv run`，永远不用手动激活 |
+| 9 | 跨模块 import 变量再赋值 | ❌ `from config import x` 拿到的是引用快照，重新赋值只改本地，其他模块仍是旧值 |
+| | | ✅ 改可变对象内容，或 `import config` 读 `config.x`，或包装成类实例字段 |
 
-> 详细说明见各章：坑 1-4 → [第 6 章](part2-language/06-data-types.md) · 坑 5 → [第 10 章](part3-appendix/10-cheatsheet.md) · 坑 6 → [第 4 章](part1-workflow/04-imports.md) · 坑 7 → [第 10 章](part3-appendix/10-cheatsheet.md) · 坑 8 → [第 2 章](part1-workflow/02-toolchain.md)
+> 详细说明见各章：坑 1-4 → [第 6 章](part2-language/06-data-types.md) · 坑 5 → [第 12 章](part3-appendix/12-cheatsheet.md) · 坑 6 → [第 4 章](part1-workflow/04-imports.md) · 坑 7 → [第 12 章](part3-appendix/12-cheatsheet.md) · 坑 8 → [第 2 章](part1-workflow/02-toolchain.md) · 坑 9 → [第 10 章](part2-language/10-scope-and-references.md)
 
 ---
 
@@ -76,13 +78,14 @@
 | 7 | 变量、赋值与可变性 | [阅读](part2-language/07-variables.md) |
 | 8 | 可迭代对象与枚举 | [阅读](part2-language/08-iterables.md) |
 | 9 | 错误捕获 | [阅读](part2-language/09-errors.md) |
+| 10 | 作用域与引用安全 | [阅读](part2-language/10-scope-and-references.md) |
 | 11 | 模块导入规则与标准库速览 | [阅读](part2-language/11-standard-library.md) |
 
 ### Part III：附录 —— 速查与工具链汇总
 
 | 章节 | 内容 | 链接 |
 |------|------|------|
-| 10 | 更多差异速查（与 JS 对照） | [阅读](part3-appendix/10-cheatsheet.md) |
+| 12 | 更多差异速查（与 JS 对照） | [阅读](part3-appendix/12-cheatsheet.md) |
 
 ---
 

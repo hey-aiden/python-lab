@@ -11,7 +11,7 @@
 
 # 2. 创建项目目录
 cd ~/projects
-uv init my-project
+uv init my-project   # 已有目录的初始化直接cd到目录下，uv init . 就行
 cd my-project
 
 # 3. 指定 Python 版本

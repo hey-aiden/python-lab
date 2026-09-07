@@ -9,9 +9,10 @@ Python 学习实验仓库，包含以下子项目：
 | 目录 | 用途 | 包管理器 |
 |------|------|----------|
 | **`old-version/`** | 原始 Python 示例与实验脚本（MySQL、GUI、HTTPX、文件 IO、正则等） | `uv` |
-| **`basic-python/`** | 最新的 Python 基础学习代码 | — |
 | **`guide-python/`** | Python 学习指南 + 代码示例（标准库、文件 IO、导入规则等） | `uv` |
+| **`langchain-ai/`** | LangChain AI 应用实验（FastAPI + MySQL，agent 服务） | `uv` |
 | **`web-fastapi/`** | FastAPI 生产级目录结构实验（router/service/middleware 分层） | `uv` |
+| **`redis-mq/`** | Redis + Kafka 消息队列学习应用（当前为配置 + 操作标记桩） | `uv` |
 
 ## Build/Run Commands
 
@@ -37,6 +38,16 @@ uv run pytest                 # 运行测试
 ```bash
 cd web-fastapi
 uv run dev                    # 开发服务器（自动 reload + 释放 8000 端口）
+uv run pytest                 # 运行测试
+```
+
+### redis-mq/
+
+```bash
+cd redis-mq
+uv sync                       # 安装依赖
+docker compose up -d          # 启动 Redis（本地 docker）
+uv run dev                    # 开发服务器（8000 端口）
 uv run pytest                 # 运行测试
 ```
 
@@ -68,6 +79,13 @@ uv add --dev <pkg>            # 添加开发依赖
 - services 层不依赖 FastAPI，纯 Python 可独立测试
 - `dev()` 函数启动前自动释放 8000 端口
 - 测试用 `pytest` + `httpx.AsyncClient`，`tests/conftest.py` 提供 client fixture
+
+### redis-mq
+
+- 分层架构：`endpoints → services → schemas`，配置集中在 `config.py`（pydantic-settings 读 `.env`）
+- 当前为脚手架：Redis/Kafka 操作均为标记桩（`raise NotImplementedError`），待逐个实现
+- Redis 用 `redis.asyncio`（异步客户端），Kafka 用 `confluent-kafka`（同步客户端）
+- Redis 由 `docker-compose.yml` 本地启动；Kafka 仅做连接配置
 
 ### 通用规则
 

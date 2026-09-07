@@ -1,0 +1,15 @@
+# 只负责本地启动 Redis（Kafka 启动不关注，仅做连接）
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: redis-mq-redis
+    ports:
+      - "6379:6379"
+    # 需要密码时取消注释，并与 .env 的 REDIS_PASSWORD 保持一致：
+    # command: redis-server --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+
+volumes:
+  redis-data:

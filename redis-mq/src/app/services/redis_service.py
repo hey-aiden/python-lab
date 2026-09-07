@@ -8,6 +8,8 @@
 实现顺序建议：先 string/hash，再 list/set/zset，最后键管理 / 管道 / 发布订阅。
 """
 
+from __future__ import annotations
+
 
 class RedisService:
     """Redis 操作集合（按数据结构分组）。
@@ -211,3 +213,8 @@ class RedisService:
     async def subscribe(self, channel: str) -> None:
         """SUBSCRIBE：订阅频道（长连接，通常独立进程运行）。TODO: 实现"""
         raise NotImplementedError
+
+
+# 模块级单例：连接复用，避免每次请求新建客户端
+# （后续在 __init__ 里创建 redis.asyncio.Redis 后，全局共享一个连接池）
+redis_service = RedisService()

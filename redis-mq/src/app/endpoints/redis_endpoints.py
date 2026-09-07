@@ -1,22 +1,24 @@
-"""Redis 相关路由（标记桩）。
+"""Redis 相关路由 — 只负责路由分发与参数解析，业务逻辑下沉到 services 层。
 
-TODO: 后续把每个数据结构操作暴露成 HTTP 端点。
-路由层只做参数解析与响应封装，实际逻辑在 services/redis_service.py。
-以下为代表性示例。
+分层约定（对齐 web-fastapi）：
+- 本层：解析路径/查询参数 → 调用 RedisService → 封装响应
+- services 层：纯 Redis 操作逻辑，不依赖 FastAPI
 """
 
 from fastapi import APIRouter
+
+from app.services.redis_service import redis_service
 
 router = APIRouter(prefix="/redis", tags=["redis"])
 
 
 @router.get("/get/{key}")
 async def get_string(key: str):
-    """读取 string。TODO: 实现 — 调用 RedisService.get"""
-    raise NotImplementedError
+    """读取 string：GET {key}。"""
+    return await redis_service.get(key)
 
 
 @router.post("/set/{key}")
 async def set_string(key: str, value: str):
-    """写入 string。TODO: 实现 — 调用 RedisService.set"""
-    raise NotImplementedError
+    """写入 string：SET {key} {value}。"""
+    return await redis_service.set(key, value)

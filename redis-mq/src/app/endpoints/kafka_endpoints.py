@@ -1,21 +1,25 @@
-"""Kafka 相关路由（标记桩）。
+"""Kafka 相关路由 — 只负责路由分发与参数解析，业务逻辑下沉到 services 层。
 
-TODO: 后续暴露 produce / consume 端点，逻辑在 services/kafka_service.py。
-以下为代表性示例。
+分层约定（对齐 web-fastapi）：
+- 本层：解析参数 → 调用 KafkaService → 封装响应
+- services 层：纯 Kafka 操作逻辑，不依赖 FastAPI
+- 注意：confluent-kafka 是同步客户端，正式实现时用 anyio.to_thread 包装，避免阻塞事件循环
 """
 
 from fastapi import APIRouter
+
+from app.services.kafka_service import consumer_service, producer_service
 
 router = APIRouter(prefix="/kafka", tags=["kafka"])
 
 
 @router.post("/produce")
 async def produce(topic: str, message: str):
-    """生产一条消息。TODO: 实现 — 调用 KafkaProducerService.produce"""
-    raise NotImplementedError
+    """生产一条消息。"""
+    return producer_service.produce(topic, message)
 
 
 @router.get("/consume")
 async def consume():
-    """消费一条消息。TODO: 实现 — 调用 KafkaConsumerService.consume"""
-    raise NotImplementedError
+    """消费一条消息。"""
+    return consumer_service.consume()

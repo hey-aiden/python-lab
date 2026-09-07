@@ -58,3 +58,9 @@ class KafkaAdminService:
     def list_topics(self) -> list[str]:
         """LIST TOPICS：列出已有主题。TODO: 实现"""
         raise NotImplementedError
+
+
+# 模块级单例：连接复用，避免每次请求新建客户端
+producer_service = KafkaProducerService()
+consumer_service = KafkaConsumerService()
+admin_service = KafkaAdminService()

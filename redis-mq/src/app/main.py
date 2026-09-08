@@ -1,14 +1,52 @@
 """FastAPI 应用入口。"""
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 
 from app.config import settings
 from app.endpoints import kafka_endpoints, redis_endpoints
 
-app = FastAPI(title="redis-mq", description="学习 Redis 与 Kafka 消息队列")
+# from app.services.kafka_service import (
+#     KafkaAdminService,
+#     KafkaConsumerService,
+#     KafkaProducerService,
+# )
+from app.services.redis_service import RedisService
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """应用生命周期：启动时创建服务，关闭时释放连接。
+
+    在 lifespan（而非 import 时）创建服务的原因：
+    - fork 安全：uvicorn 多 worker 各自在子进程内创建，避免共享 socket
+    - 事件循环正确：async 客户端绑定当前运行的 loop
+    - 生命周期清晰：关闭时统一释放连接
+    """
+    app.state.redis = RedisService()
+    # app.state.kafka_producer = KafkaProducerService()
+    # app.state.kafka_consumer = KafkaConsumerService()
+    # app.state.kafka_admin = KafkaAdminService()
+    yield
+    await app.state.redis.aclose()
+    # app.state.kafka_producer.flush()  # 等待未投递消息送达
+    # app.state.kafka_consumer.close()
+
+
+app = FastAPI(
+    title="redis-mq",
+    description="学习 Redis 与 Kafka 消息队列",
+    lifespan=lifespan,
+)
 
 app.include_router(redis_endpoints.router)
 app.include_router(kafka_endpoints.router)
+
+
+@app.get("/")
+async def index() -> dict:
+    return {"status": "ok", "app": app.title}
 
 
 @app.get("/health")

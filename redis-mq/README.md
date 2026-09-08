@@ -2,7 +2,7 @@
 
 学习 **Redis** 与 **Kafka 消息队列** 的独立 FastAPI 应用。
 
-当前状态：**脚手架 + 配置 + 操作标记**，Redis / Kafka 的真实逻辑尚未实现（方法均为桩，`raise NotImplementedError`）。
+当前状态：**脚手架 + 配置 + 分层结构**已就绪；Redis 的 `get`/`set`（含异常处理）已实现，其余操作仍为桩（`raise NotImplementedError`）。
 
 ## 目录结构
 
@@ -15,13 +15,16 @@ redis-mq/
 ├── env.example               # 配置模板（入库）
 └── src/app/
     ├── config.py             # Settings：redis_* / kafka_* 字段
-    ├── main.py               # FastAPI 入口 + /health
+    ├── deps.py               # 依赖注入（从 app.state 取服务实例）
+    ├── main.py               # FastAPI 入口 + lifespan + /health
     ├── endpoints/            # 路由层（标记桩）
     │   ├── redis_endpoints.py
     │   └── kafka_endpoints.py
     ├── services/             # 业务层（纯 Python，标记桩）
+    │   ├── errors.py         # 领域异常（RedisUnavailableError 等）
     │   ├── redis_service.py  # 完整数据结构
-    │   └── kafka_service.py  # producer / consumer / admin
+    │   ├── kafka_service.py  # producer / consumer / admin
+    │   └── redis-exceptions.md  # redis-py 异常类型说明
     └── schemas/              # 请求/响应模型
 ```
 
@@ -59,11 +62,16 @@ cp env.example .env
 
 - **Redis 客户端**：`redis-py`（`redis.asyncio` 异步客户端，`redis_service.py` 方法为 `async`）
 - **Kafka 客户端**：`confluent-kafka`（同步，接入 async 端点时通过线程池包装）
+- **生命周期**：服务由 FastAPI `lifespan` 创建/释放，经 `deps.py` 的 `Depends` 注入端点（fork 安全、事件循环正确）
 
 ## 实现进度
 
 | 模块 | 内容 | 状态 |
 |------|------|------|
-| `redis_service.py` | string / hash / list / set / zset / 过期 / 管道 / 发布订阅 | 已标记 |
+| `redis_service.py` | string / hash / list / set / zset / 过期 / 管道 / 发布订阅 | `get`/`set` 已实现（含异常处理），其余已标记 |
 | `kafka_service.py` | producer / consumer / admin | 已标记 |
-| `endpoints/*` | 代表性路由 | 已标记 |
+| `endpoints/*` | 代表性路由 | `get`/`set` 已实现，其余已标记 |
+
+## 参考文档
+
+- [redis-py 异常类型说明](src/app/services/redis-exceptions.md)

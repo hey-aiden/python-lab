@@ -10,23 +10,68 @@
 
 from __future__ import annotations
 
+from redis import asyncio as redis_asyncio
+
+from app.config import settings
+from app.services.errors import RedisResponseError, RedisUnavailableError
+
 
 class RedisService:
     """Redis 操作集合（按数据结构分组）。
 
-    TODO: 实现 — 在 `__init__` 中基于 `app.config.settings` 创建
-    `redis.asyncio.Redis` 客户端（可直接用 settings.redis_url）。
+    连接生命周期（生产级）：
+    - `__init__` 创建 `redis.asyncio.Redis` 客户端（惰性，不立即建立连接）。
+    - 由 FastAPI lifespan 在启动时实例化、关闭时调用 `aclose()`。
+    - 通过 `deps.get_redis` 注入到端点。
+
+    下方各方法为业务操作桩，实现时统一调用 `self._client`。
     """
+
+    def __init__(self) -> None:
+        self._client = redis_asyncio.from_url(
+            settings.redis_url,
+            decode_responses=True,  # 返回 str 而非 bytes
+            health_check_interval=30,  # 定期探活，避免 Redis 重启后连接失效
+            retry_on_timeout=True,
+        )
+
+    async def aclose(self) -> None:
+        """关闭客户端与连接池（lifespan 关闭阶段调用）。"""
+        await self._client.aclose()
+
+    # ---- 异常处理约定（可选，实现时按需加）--------------------------
+    # 分层：service 抛领域异常 → endpoint 映射 HTTP 状态码（对齐 web-fastapi）。
+    #
+    # 1. services/errors.py 已定义领域异常：
+    #    from app.services.errors import RedisUnavailableError
+    #
+    # 2. service 层捕获 redis-py 异常，转成领域异常（不关心 HTTP）：
+    #    try:
+    #        return await self._client.get(key)
+    #    except redis_asyncio.ConnectionError as exc:
+    #        raise RedisUnavailableError("Redis 连接失败") from exc
+    #
+    # 3. endpoint 层捕获领域异常，映射成 HTTPException（见 redis_endpoints.py）。
 
     # ---- string 字符串 ----
 
     async def set(self, key: str, value: str) -> bool:
-        """SET：写入字符串键值。TODO: 实现"""
-        raise NotImplementedError
+        """SET：写入字符串键值。"""
+        try:
+            return await self._client.set(key, value)
+        except redis_asyncio.ConnectionError as exc:
+            raise RedisUnavailableError(f"Redis 连接失败: {exc}") from exc
+        except redis_asyncio.ResponseError as exc:
+            raise RedisResponseError(f"SET 命令执行出错: {exc}") from exc
 
     async def get(self, key: str) -> str | None:
-        """GET：读取字符串键值。TODO: 实现"""
-        raise NotImplementedError
+        """GET：读取字符串键值。"""
+        try:
+            return await self._client.get(key)
+        except redis_asyncio.ConnectionError as exc:
+            raise RedisUnavailableError(f"Redis 连接失败: {exc}") from exc
+        except redis_asyncio.ResponseError as exc:
+            raise RedisResponseError(f"GET 命令执行出错: {exc}") from exc
 
     async def setex(self, key: str, ttl: int, value: str) -> bool:
         """SETEX：写入键值并设置过期秒数。TODO: 实现"""
@@ -213,8 +258,3 @@ class RedisService:
     async def subscribe(self, channel: str) -> None:
         """SUBSCRIBE：订阅频道（长连接，通常独立进程运行）。TODO: 实现"""
         raise NotImplementedError
-
-
-# 模块级单例：连接复用，避免每次请求新建客户端
-# （后续在 __init__ 里创建 redis.asyncio.Redis 后，全局共享一个连接池）
-redis_service = RedisService()

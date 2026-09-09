@@ -97,7 +97,8 @@
     "pyyaml",
     "sqlalchemy",
     "typer",
-    "setex"
+    "setex",
+    "sadd"
   ],
   "ignoreWords": [],
   "ignorePaths": [

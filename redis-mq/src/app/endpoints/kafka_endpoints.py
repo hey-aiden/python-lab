@@ -5,6 +5,8 @@
 - services 层：纯 Kafka 操作逻辑，不依赖 FastAPI
 """
 
+from typing import Annotated
+
 from fastapi import APIRouter, Depends
 
 from app.deps import get_kafka_consumer, get_kafka_producer
@@ -17,7 +19,7 @@ router = APIRouter(prefix="/kafka", tags=["kafka"])
 async def produce(
     topic: str,
     message: str,
-    producer: KafkaProducerService = Depends(get_kafka_producer),
+    producer: Annotated[KafkaProducerService, Depends(get_kafka_producer)],
 ):
     """生产一条消息。"""
     # TODO: confluent-kafka 是同步客户端，实现时用 anyio.to_thread 包装，避免阻塞事件循环
@@ -25,7 +27,7 @@ async def produce(
 
 
 @router.get("/consume")
-async def consume(consumer: KafkaConsumerService = Depends(get_kafka_consumer)):
+async def consume(consumer: Annotated[KafkaConsumerService, Depends(get_kafka_consumer)]):
     """消费一条消息。"""
     # TODO: confluent-kafka 是同步客户端，实现时用 anyio.to_thread 包装，避免阻塞事件循环
     return consumer.consume()

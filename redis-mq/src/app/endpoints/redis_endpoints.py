@@ -3,40 +3,44 @@
 分层约定（对齐 web-fastapi）：
 - 本层：解析路径/查询/body 参数 → 调用 RedisService → 封装响应
 - services 层：纯 Redis 操作逻辑，不依赖 FastAPI
-- 异常映射：领域异常 → HTTP 状态码（503 连接不可用 / 400 命令出错）
+- 异常映射：领域异常 → HTTP 状态码，统一由全局异常处理器完成
+  （见 app/exception_handlers.py），endpoint 无需各自 try/except
 """
 
-from fastapi import APIRouter, Depends, HTTPException
+from typing import Annotated
+
+from fastapi import APIRouter, Depends
 
 from app.deps import get_redis
-from app.schemas.redis import SetRequest
-from app.services.errors import RedisResponseError, RedisUnavailableError
+from app.schemas.redis import SetexRequest, SetRequest
+from app.services.redis_config import get_cache_time
 from app.services.redis_service import RedisService
 
 router = APIRouter(prefix="/redis", tags=["redis"])
 
 
 @router.get("/get")
-async def get_string(key: str, redis: RedisService = Depends(get_redis)):
+async def get_string(key: str, redis: Annotated[RedisService, Depends(get_redis)]):
     """读取 string：GET /redis/get?key=xxx。"""
-    try:
-        return await redis.get(key)
-    except RedisUnavailableError as exc:
-        raise HTTPException(status_code=503, detail=str(exc))
-    except RedisResponseError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
+    return await redis.get(key)
 
 
 @router.post("/set/{key}")
 async def set_string(
     key: str,
     body: SetRequest,
-    redis: RedisService = Depends(get_redis),
+    redis: Annotated[RedisService, Depends(get_redis)],
 ):
     """写入 string：POST /redis/set/{key}，JSON body 为 {"value": "..."}。"""
-    try:
-        return await redis.set(key, body.value)
-    except RedisUnavailableError as exc:
-        raise HTTPException(status_code=503, detail=str(exc))
-    except RedisResponseError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
+    return await redis.set(key, body.value)
+
+
+@router.post("/set_auth/{key}")
+async def set_auth(
+    key: str,
+    body: SetexRequest,
+    redis: Annotated[RedisService, Depends(get_redis)],
+):
+    """写入带 TTL 的 string：POST /redis/set_auth/{key}，JSON body 为 {"value": "...", "type": "..."}。"""
+    ttl = get_cache_time(body.type)
+    return await redis.setex(key, ttl, body.value)

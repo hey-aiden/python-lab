@@ -19,7 +19,6 @@ from redis import asyncio as redis_asyncio
 from app.config import settings
 from app.services.errors import RedisResponseError, RedisUnavailableError
 
-
 P = ParamSpec("P")
 R = TypeVar("R")
 
@@ -95,13 +94,15 @@ class RedisService:
         """SETEX：写入键值并设置过期秒数。"""
         return await self._client.setex(key, ttl, value)
 
+    @_translate_errors
     async def incr(self, key: str) -> int:
-        """INCR：键值自增 1（常用于计数）。TODO: 实现"""
-        raise NotImplementedError
+        """INCR：键值自增 1（常用于计数）。"""
+        return await self._client.incr(key)
 
+    @_translate_errors
     async def decr(self, key: str) -> int:
-        """DECR：键值自减 1。TODO: 实现"""
-        raise NotImplementedError
+        """DECR：键值自减 1。"""
+        return await self._client.decr(key)
 
     async def mset(self, mapping: dict[str, str]) -> bool:
         """MSET：批量写入多个键值。TODO: 实现"""
@@ -111,9 +112,10 @@ class RedisService:
         """MGET：批量读取多个键。TODO: 实现"""
         raise NotImplementedError
 
+    @_translate_errors
     async def append(self, key: str, value: str) -> int:
-        """APPEND：向字符串末尾追加内容。TODO: 实现"""
-        raise NotImplementedError
+        """APPEND：向字符串末尾追加内容。"""
+        return await self._client.append(key, value)
 
     # ---- hash 哈希 ----
 
@@ -181,9 +183,10 @@ class RedisService:
 
     # ---- set 集合 ----
 
+    @_translate_errors
     async def sadd(self, key: str, *members: str) -> int:
-        """SADD：添加成员（去重）。TODO: 实现"""
-        raise NotImplementedError
+        """SADD：添加成员（去重）。"""
+        return await self._client.sadd(key, *members)
 
     async def smembers(self, key: str) -> set[str]:
         """SMEMBERS：读取全部成员。TODO: 实现"""
@@ -193,9 +196,10 @@ class RedisService:
         """SISMEMBER：判断成员是否存在。TODO: 实现"""
         raise NotImplementedError
 
+    @_translate_errors
     async def srem(self, key: str, *members: str) -> int:
-        """SREM：删除成员。TODO: 实现"""
-        raise NotImplementedError
+        """SREM：删除成员。"""
+        return await self._client.srem(key, *members)
 
     async def scard(self, key: str) -> int:
         """SCARD：集合大小。TODO: 实现"""
@@ -257,9 +261,10 @@ class RedisService:
         """EXISTS：判断键是否存在（返回存在的个数）。TODO: 实现"""
         raise NotImplementedError
 
+    @_translate_errors
     async def delete(self, *keys: str) -> int:
-        """DEL：删除键。TODO: 实现"""
-        raise NotImplementedError
+        """DEL：删除键。"""
+        return await self._client.delete(*keys)
 
     # ---- 管道 ----
 

@@ -7,3 +7,10 @@ class SetRequest(BaseModel):
     """SET 请求体：{"value": "..."}。"""
 
     value: str
+
+
+class SetexRequest(BaseModel):
+    """SET请求体：{"value": "...", type: "..."}"""
+
+    value: str
+    type: str

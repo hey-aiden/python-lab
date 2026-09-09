@@ -10,10 +10,37 @@
 
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
+from functools import wraps
+from typing import ParamSpec, TypeVar
+
 from redis import asyncio as redis_asyncio
 
 from app.config import settings
 from app.services.errors import RedisResponseError, RedisUnavailableError
+
+
+P = ParamSpec("P")
+R = TypeVar("R")
+
+
+def _translate_errors(func: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[R]]:
+    """把 redis-py 异常统一转成领域异常（service 层统一错误处理）。
+
+    未加此装饰器的方法如需自定义错误处理，可单独写 try/except，但需保持
+    抛出的领域异常类型一致（RedisUnavailableError / RedisResponseError）。
+    """
+
+    @wraps(func)
+    async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+        try:
+            return await func(*args, **kwargs)
+        except redis_asyncio.ConnectionError as exc:
+            raise RedisUnavailableError(f"Redis 连接失败: {exc}") from exc
+        except redis_asyncio.ResponseError as exc:
+            raise RedisResponseError(f"{func.__name__} 执行出错: {exc}") from exc
+
+    return wrapper
 
 
 class RedisService:
@@ -45,37 +72,28 @@ class RedisService:
     # 1. services/errors.py 已定义领域异常：
     #    from app.services.errors import RedisUnavailableError
     #
-    # 2. service 层捕获 redis-py 异常，转成领域异常（不关心 HTTP）：
-    #    try:
-    #        return await self._client.get(key)
-    #    except redis_asyncio.ConnectionError as exc:
-    #        raise RedisUnavailableError("Redis 连接失败") from exc
+    # 2. service 层捕获 redis-py 异常，转成领域异常（不关心 HTTP）。
+    #    统一由模块级装饰器 `_translate_errors` 完成；个别需定制的方法可不加
+    #    装饰器、单独写 try/except，但需保持抛出的领域异常类型一致。
     #
     # 3. endpoint 层捕获领域异常，映射成 HTTPException（见 redis_endpoints.py）。
 
     # ---- string 字符串 ----
 
+    @_translate_errors
     async def set(self, key: str, value: str) -> bool:
         """SET：写入字符串键值。"""
-        try:
-            return await self._client.set(key, value)
-        except redis_asyncio.ConnectionError as exc:
-            raise RedisUnavailableError(f"Redis 连接失败: {exc}") from exc
-        except redis_asyncio.ResponseError as exc:
-            raise RedisResponseError(f"SET 命令执行出错: {exc}") from exc
+        return await self._client.set(key, value)
 
+    @_translate_errors
     async def get(self, key: str) -> str | None:
         """GET：读取字符串键值。"""
-        try:
-            return await self._client.get(key)
-        except redis_asyncio.ConnectionError as exc:
-            raise RedisUnavailableError(f"Redis 连接失败: {exc}") from exc
-        except redis_asyncio.ResponseError as exc:
-            raise RedisResponseError(f"GET 命令执行出错: {exc}") from exc
+        return await self._client.get(key)
 
+    @_translate_errors
     async def setex(self, key: str, ttl: int, value: str) -> bool:
-        """SETEX：写入键值并设置过期秒数。TODO: 实现"""
-        raise NotImplementedError
+        """SETEX：写入键值并设置过期秒数。"""
+        return await self._client.setex(key, ttl, value)
 
     async def incr(self, key: str) -> int:
         """INCR：键值自增 1（常用于计数）。TODO: 实现"""

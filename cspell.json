@@ -96,7 +96,8 @@
     "fastapi",
     "pyyaml",
     "sqlalchemy",
-    "typer"
+    "typer",
+    "setex"
   ],
   "ignoreWords": [],
   "ignorePaths": [

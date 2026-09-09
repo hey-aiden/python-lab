@@ -13,7 +13,7 @@ from fastapi import APIRouter, Depends
 
 from app.deps import get_redis
 from app.schemas.redis import SetexRequest, SetRequest
-from app.services.redis_config import get_cache_time
+from app.constants.redis_config import get_cache_time
 from app.services.redis_service import RedisService
 
 router = APIRouter(prefix="/redis", tags=["redis"])

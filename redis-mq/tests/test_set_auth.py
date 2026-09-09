@@ -10,8 +10,8 @@ import pytest
 
 from app.deps import get_redis
 from app.main import app
-from app.services.errors import RedisResponseError, RedisUnavailableError
-from app.services.redis_config import get_cache_time
+from app.errors import RedisResponseError, RedisUnavailableError
+from app.constants.redis_config import get_cache_time
 
 
 class _FakeRedisService:

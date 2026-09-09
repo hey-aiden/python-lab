@@ -9,7 +9,7 @@ from redis import asyncio as redis_asyncio
 
 from app.deps import get_redis
 from app.main import app
-from app.services.errors import RedisResponseError, RedisUnavailableError
+from app.errors import RedisResponseError, RedisUnavailableError
 from app.services.redis_service import RedisService
 
 

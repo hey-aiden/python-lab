@@ -17,7 +17,7 @@ from typing import ParamSpec, TypeVar
 from redis import asyncio as redis_asyncio
 
 from app.config import settings
-from app.services.errors import RedisResponseError, RedisUnavailableError
+from app.errors import RedisResponseError, RedisUnavailableError
 
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -68,8 +68,8 @@ class RedisService:
     # ---- 异常处理约定（可选，实现时按需加）--------------------------
     # 分层：service 抛领域异常 → endpoint 映射 HTTP 状态码（对齐 web-fastapi）。
     #
-    # 1. services/errors.py 已定义领域异常：
-    #    from app.services.errors import RedisUnavailableError
+    # 1. errors.py 已定义领域异常：
+    #    from app.errors import RedisUnavailableError
     #
     # 2. service 层捕获 redis-py 异常，转成领域异常（不关心 HTTP）。
     #    统一由模块级装饰器 `_translate_errors` 完成；个别需定制的方法可不加

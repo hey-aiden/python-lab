@@ -8,7 +8,7 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from app.services.errors import RedisResponseError, RedisUnavailableError
+from app.errors import RedisResponseError, RedisUnavailableError
 
 
 def register_exception_handlers(app: FastAPI) -> None:

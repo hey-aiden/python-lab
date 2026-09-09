@@ -140,7 +140,7 @@ async def delete(self, *keys: str)                 # DEL key [key ...]
 
 ## 5. Key 命名约定
 
-集中维护在 `app/services/redis_key.py`：前缀是常量、拼 key 是函数，业务代码只调函数、不拼字符串。
+集中维护在 `app/constants/redis_key.py`：前缀是常量、拼 key 是函数，业务代码只调函数、不拼字符串。
 
 ```python
 POEM_NS = "poem"

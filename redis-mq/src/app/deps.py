@@ -9,6 +9,7 @@ from app.services.kafka_service import (
 )
 from app.services.lock_service import LockService
 from app.services.redis_service import RedisService
+from app.services.seckill_service import SeckillService
 
 
 def get_redis(request: Request) -> RedisService:
@@ -19,6 +20,11 @@ def get_redis(request: Request) -> RedisService:
 def get_lock(request: Request) -> LockService:
     """返回 LockService 实例（app.state.lock）。"""
     return request.app.state.lock
+
+
+def get_seckill(request: Request) -> SeckillService:
+    """返回 SeckillService 实例（app.state.seckill）。"""
+    return request.app.state.seckill
 
 
 def get_kafka_producer(request: Request) -> KafkaProducerService:

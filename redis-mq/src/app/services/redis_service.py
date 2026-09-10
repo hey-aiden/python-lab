@@ -85,10 +85,10 @@ class RedisService:
         return await self._client.set(key, value)
 
     @_translate_errors
-    async def set_nx(self, key: str, value: str, ttl: int) -> bool:
-        """SET key value NX EX ttl：仅当键不存在时写入并设置过期。
+    async def set_nx(self, key: str, value: str, ttl: int | None = None) -> bool:
+        """SET key value NX [EX ttl]：仅当键不存在时写入（ttl 为 None 则不设过期）。
 
-        原子地完成「判断不存在 + 写入 + 过期」，是分布式锁、幂等防重的底层原语。
+        原子地完成「判断不存在 + 写入」，是分布式锁（带 ttl）、幂等防重（可不带）的底层原语。
         返回 True 表示抢到（键原先不存在），False 表示键已存在（抢占失败）。
         """
         result = await self._client.set(key, value, nx=True, ex=ttl)
@@ -272,9 +272,10 @@ class RedisService:
         """ZREM：删除成员。TODO: 实现"""
         raise NotImplementedError
 
+    @_translate_errors
     async def zcard(self, key: str) -> int:
-        """ZCARD：集合大小。TODO: 实现"""
-        raise NotImplementedError
+        """ZCARD：有序集合成员数量（如秒杀下单人数）。"""
+        return await self._client.zcard(key)
 
     # ---- 键管理与过期 ----
 

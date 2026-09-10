@@ -11,6 +11,7 @@ SESSION_NS = "session"
 RANK_NS = "rank"
 LOCK_NS = "lock"
 STOCK_NS = "stock"
+SECKILL_NS = "seckill"
 
 
 def poem_key(poem_id: int | str) -> str:
@@ -46,3 +47,23 @@ def lock_key(name: str) -> str:
 def stock_key(product_id: int | str) -> str:
     """某商品库存的 key：`stock:{product_id}`（Lua 扣库存示例用）。"""
     return f"{STOCK_NS}:{product_id}"
+
+
+def seckill_stock_key(activity_id: int | str) -> str:
+    """秒杀活动库存 key：`seckill:stock:{activity_id}`（string 存剩余数量）。"""
+    return f"{SECKILL_NS}:stock:{activity_id}"
+
+
+def seckill_order_key(activity_id: int | str, user_id: int | str) -> str:
+    """用户限购幂等 key：`seckill:order:{activity_id}:{user_id}`（存在即已抢过）。"""
+    return f"{SECKILL_NS}:order:{activity_id}:{user_id}"
+
+
+def seckill_orders_key(activity_id: int | str) -> str:
+    """活动下单名单 zset key：`seckill:orders:{activity_id}`（member=user_id，score=下单时间）。"""
+    return f"{SECKILL_NS}:orders:{activity_id}"
+
+
+def seckill_closed_key(activity_id: int | str) -> str:
+    """活动封盘标记 key：`seckill:closed:{activity_id}`。"""
+    return f"{SECKILL_NS}:closed:{activity_id}"

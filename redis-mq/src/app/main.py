@@ -11,6 +11,7 @@ from app.endpoints import (
     lock,
     redis_endpoints,
     score_rank,
+    seckill,
     session,
 )
 from app.exception_handlers import register_exception_handlers
@@ -22,6 +23,7 @@ from app.exception_handlers import register_exception_handlers
 # )
 from app.services.lock_service import LockService
 from app.services.redis_service import RedisService
+from app.services.seckill_service import SeckillService
 
 
 @asynccontextmanager
@@ -35,6 +37,7 @@ async def lifespan(app: FastAPI):
     """
     app.state.redis = RedisService()
     app.state.lock = LockService(app.state.redis)
+    app.state.seckill = SeckillService(app.state.redis, app.state.lock)
     # app.state.kafka_producer = KafkaProducerService()
     # app.state.kafka_consumer = KafkaConsumerService()
     # app.state.kafka_admin = KafkaAdminService()
@@ -58,6 +61,7 @@ app.include_router(article_poem.router)
 app.include_router(session.router)
 app.include_router(score_rank.router)
 app.include_router(lock.router)
+app.include_router(seckill.router)
 
 
 @app.get("/")

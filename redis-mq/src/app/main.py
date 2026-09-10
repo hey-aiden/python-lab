@@ -5,7 +5,14 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.config import settings
-from app.endpoints import article_poem, kafka_endpoints, redis_endpoints, score_rank, session
+from app.endpoints import (
+    article_poem,
+    kafka_endpoints,
+    lock,
+    redis_endpoints,
+    score_rank,
+    session,
+)
 from app.exception_handlers import register_exception_handlers
 
 # from app.services.kafka_service import (
@@ -13,6 +20,7 @@ from app.exception_handlers import register_exception_handlers
 #     KafkaConsumerService,
 #     KafkaProducerService,
 # )
+from app.services.lock_service import LockService
 from app.services.redis_service import RedisService
 
 
@@ -26,6 +34,7 @@ async def lifespan(app: FastAPI):
     - 生命周期清晰：关闭时统一释放连接
     """
     app.state.redis = RedisService()
+    app.state.lock = LockService(app.state.redis)
     # app.state.kafka_producer = KafkaProducerService()
     # app.state.kafka_consumer = KafkaConsumerService()
     # app.state.kafka_admin = KafkaAdminService()
@@ -48,6 +57,7 @@ app.include_router(kafka_endpoints.router)
 app.include_router(article_poem.router)
 app.include_router(session.router)
 app.include_router(score_rank.router)
+app.include_router(lock.router)
 
 
 @app.get("/")

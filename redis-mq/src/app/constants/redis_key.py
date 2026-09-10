@@ -9,6 +9,8 @@
 POEM_NS = "poem"
 SESSION_NS = "session"
 RANK_NS = "rank"
+LOCK_NS = "lock"
+STOCK_NS = "stock"
 
 
 def poem_key(poem_id: int | str) -> str:
@@ -34,3 +36,13 @@ def score_rank_key() -> str:
 def player_info_key(user_id: str) -> str:
     """某玩家详情 hash 的 key：`rank:player:{user_id}`。"""
     return f"{RANK_NS}:player:{user_id}"
+
+
+def lock_key(name: str) -> str:
+    """某分布式锁的 key：`lock:{name}`（锁名是业务语义，key 加命名空间隔离）。"""
+    return f"{LOCK_NS}:{name}"
+
+
+def stock_key(product_id: int | str) -> str:
+    """某商品库存的 key：`stock:{product_id}`（Lua 扣库存示例用）。"""
+    return f"{STOCK_NS}:{product_id}"

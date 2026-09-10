@@ -85,6 +85,16 @@ class RedisService:
         return await self._client.set(key, value)
 
     @_translate_errors
+    async def set_nx(self, key: str, value: str, ttl: int) -> bool:
+        """SET key value NX EX ttl：仅当键不存在时写入并设置过期。
+
+        原子地完成「判断不存在 + 写入 + 过期」，是分布式锁、幂等防重的底层原语。
+        返回 True 表示抢到（键原先不存在），False 表示键已存在（抢占失败）。
+        """
+        result = await self._client.set(key, value, nx=True, ex=ttl)
+        return bool(result)
+
+    @_translate_errors
     async def get(self, key: str) -> str | None:
         """GET：读取字符串键值。"""
         return await self._client.get(key)
@@ -286,7 +296,42 @@ class RedisService:
         """DEL：删除键。"""
         return await self._client.delete(*keys)
 
+    # ---- 脚本（Lua 原子操作）----
+
+    @_translate_errors
+    async def eval(self, script: str, numkeys: int, *keys_and_args: str) -> object:
+        """EVAL：在 Redis 内执行 Lua 脚本，多命令原子执行。
+
+        numkeys 为脚本用到的 key 数量，其后依次是 key 与 arg；redis-py 直接透传。
+        脚本内可用 `redis.call(...)` 操作数据；Redis 保证单条脚本执行期间不被其他命令打断，
+        是「原子性读改写」与各类锁（乐观锁、扣库存）的底层基础。
+        """
+        return await self._client.eval(script, numkeys, *keys_and_args)
+
+    @_translate_errors
+    async def script_load(self, script: str) -> str:
+        """SCRIPT LOAD：预载脚本到 Redis，返回其 SHA1 摘要（供 EVALSHA 调用）。"""
+        return await self._client.script_load(script)
+
+    @_translate_errors
+    async def evalsha(self, sha: str, numkeys: int, *keys_and_args: str) -> object:
+        """EVALSHA：按 SHA1 摘要执行已预载的脚本。
+
+        相比每次传脚本全文（EVAL），EVALSHA 只传摘要，省网络带宽；生产环境通常
+        「启动时 SCRIPT LOAD → 运行期 EVALSHA」，首次 NOSCRIPT 时回退到 EVAL 重载。
+        """
+        return await self._client.evalsha(sha, numkeys, *keys_and_args)
+
     # ---- 管道 ----
+
+    def pipeline(self):
+        """PIPELINE：返回一条管道，供 WATCH/MULTI/EXEC 事务（乐观锁）使用。
+
+        例：`pipe = svc.pipeline(); await pipe.watch(key); ...; pipe.multi(); await pipe.execute()`
+        事务（transaction=True，默认）保证 MULTI..EXEC 内命令原子执行；
+        WATCH 监测的键被他人改动时，EXEC 抛 `redis.asyncio.WatchError`，即乐观锁冲突。
+        """
+        return self._client.pipeline()
 
     async def pipeline_execute(self, commands: list) -> list:
         """PIPELINE：批量执行多条命令，减少网络往返。TODO: 实现"""

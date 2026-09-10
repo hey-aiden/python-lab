@@ -7,12 +7,18 @@ from app.services.kafka_service import (
     KafkaConsumerService,
     KafkaProducerService,
 )
+from app.services.lock_service import LockService
 from app.services.redis_service import RedisService
 
 
 def get_redis(request: Request) -> RedisService:
     """返回 RedisService 实例（app.state.redis）。"""
     return request.app.state.redis
+
+
+def get_lock(request: Request) -> LockService:
+    """返回 LockService 实例（app.state.lock）。"""
+    return request.app.state.lock
 
 
 def get_kafka_producer(request: Request) -> KafkaProducerService:

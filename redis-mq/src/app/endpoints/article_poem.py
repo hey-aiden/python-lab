@@ -11,9 +11,9 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 
+from app.constants.redis_key import poem_group_key, poem_key
 from app.deps import get_redis
 from app.schemas.poem import PoemUpdateRequest, PoemUploadRequest
-from app.constants.redis_key import poem_group_key, poem_key
 from app.services.redis_service import RedisService
 
 router = APIRouter(prefix="/poem", tags=["poem"])

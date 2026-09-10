@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.config import settings
-from app.endpoints import article_poem, kafka_endpoints, redis_endpoints, session
+from app.endpoints import article_poem, kafka_endpoints, redis_endpoints, score_rank, session
 from app.exception_handlers import register_exception_handlers
 
 # from app.services.kafka_service import (
@@ -47,6 +47,7 @@ app.include_router(redis_endpoints.router)
 app.include_router(kafka_endpoints.router)
 app.include_router(article_poem.router)
 app.include_router(session.router)
+app.include_router(score_rank.router)
 
 
 @app.get("/")

@@ -119,37 +119,45 @@ class RedisService:
 
     # ---- hash 哈希 ----
 
+    @_translate_errors
     async def hset(self, name: str, mapping: dict[str, str]) -> int:
-        """HSET：写入哈希字段（对象属性）。TODO: 实现"""
-        raise NotImplementedError
+        """HSET：写入哈希字段（对象属性）。"""
+        return await self._client.hset(name, mapping=mapping)
 
+    @_translate_errors
     async def hget(self, name: str, field: str) -> str | None:
-        """HGET：读取单个字段。TODO: 实现"""
-        raise NotImplementedError
+        """HGET：读取单个字段。"""
+        return await self._client.hget(name, field)
 
+    @_translate_errors
     async def hgetall(self, name: str) -> dict[str, str]:
-        """HGETALL：读取全部字段。TODO: 实现"""
-        raise NotImplementedError
+        """HGETALL：读取全部字段。"""
+        return await self._client.hgetall(name)
 
+    @_translate_errors
     async def hdel(self, name: str, *fields: str) -> int:
-        """HDEL：删除字段。TODO: 实现"""
-        raise NotImplementedError
+        """HDEL：删除字段。"""
+        return await self._client.hdel(name, *fields)
 
+    @_translate_errors
     async def hincrby(self, name: str, field: str, amount: int) -> int:
-        """HINCRBY：字段值自增指定数量。TODO: 实现"""
-        raise NotImplementedError
+        """HINCRBY：字段值自增指定数量。"""
+        return await self._client.hincrby(name, field, amount)
 
+    @_translate_errors
     async def hexists(self, name: str, field: str) -> bool:
-        """HEXISTS：判断字段是否存在。TODO: 实现"""
-        raise NotImplementedError
+        """HEXISTS：判断字段是否存在。"""
+        return await self._client.hexists(name, field)
 
+    @_translate_errors
     async def hkeys(self, name: str) -> list[str]:
-        """HKEYS：列出所有字段名。TODO: 实现"""
-        raise NotImplementedError
+        """HKEYS：列出所有字段名。"""
+        return await self._client.hkeys(name)
 
+    @_translate_errors
     async def hvals(self, name: str) -> list[str]:
-        """HVALS：列出所有字段值。TODO: 实现"""
-        raise NotImplementedError
+        """HVALS：列出所有字段值。"""
+        return await self._client.hvals(name)
 
     # ---- list 列表 ----
 
@@ -219,13 +227,24 @@ class RedisService:
 
     # ---- zset 有序集合 ----
 
+    @_translate_errors
     async def zadd(self, key: str, mapping: dict[str, float]) -> int:
-        """ZADD：添加成员及其分数。TODO: 实现"""
-        raise NotImplementedError
+        """ZADD：添加成员及其分数。"""
+        return await self._client.zadd(key, mapping=mapping)
 
     async def zrange(self, key: str, start: int, stop: int) -> list[str]:
         """ZRANGE：按索引区间读取（升序）。TODO: 实现"""
         raise NotImplementedError
+
+    @_translate_errors
+    async def zrevrange(
+        self, key: str, start: int, stop: int, withscores: bool = False
+    ) -> list[str] | list[tuple[str, float]]:
+        """ZREVRANGE：按索引区间读取（降序，分数从高到低）。
+
+        withscores=True 时返回 [(member, score), ...]。
+        """
+        return await self._client.zrevrange(key, start, stop, withscores=withscores)
 
     async def zrangebyscore(self, key: str, min_: float, max_: float) -> list[str]:
         """ZRANGEBYSCORE：按分数区间读取。TODO: 实现"""
@@ -249,9 +268,10 @@ class RedisService:
 
     # ---- 键管理与过期 ----
 
+    @_translate_errors
     async def expire(self, key: str, seconds: int) -> bool:
-        """EXPIRE：设置过期时间（秒）。TODO: 实现"""
-        raise NotImplementedError
+        """EXPIRE：设置过期时间（秒）。"""
+        return await self._client.expire(key, seconds)
 
     async def ttl(self, key: str) -> int:
         """TTL：查询剩余过期时间（秒，-1 无过期，-2 不存在）。TODO: 实现"""

@@ -7,6 +7,8 @@
 """
 
 POEM_NS = "poem"
+SESSION_NS = "session"
+RANK_NS = "rank"
 
 
 def poem_key(poem_id: int | str) -> str:
@@ -17,3 +19,18 @@ def poem_key(poem_id: int | str) -> str:
 def poem_group_key(group: str) -> str:
     """某分组下诗词 ID 集合的 key。"""
     return f"{POEM_NS}:group:{group}"
+
+
+def session_key(user_id: int | str) -> str:
+    """某用户会话的 key：`session:{user_id}`。"""
+    return f"{SESSION_NS}:{user_id}"
+
+
+def score_rank_key() -> str:
+    """排行榜 zset 的 key：`rank:score`。"""
+    return f"{RANK_NS}:score"
+
+
+def player_info_key(user_id: str) -> str:
+    """某玩家详情 hash 的 key：`rank:player:{user_id}`。"""
+    return f"{RANK_NS}:player:{user_id}"

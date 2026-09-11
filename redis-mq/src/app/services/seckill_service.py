@@ -29,14 +29,17 @@
 
 from __future__ import annotations
 
+import json
 import time
 
+from app.config import settings
 from app.constants.redis_key import (
     seckill_closed_key,
     seckill_order_key,
     seckill_orders_key,
     seckill_stock_key,
 )
+from app.services.kafka_service import KafkaProducerService
 from app.services.lock_service import LockService
 from app.services.redis_service import RedisService
 
@@ -78,9 +81,12 @@ return 1
 class SeckillService:
     """秒杀业务服务：依赖 RedisService（命令原语）+ LockService（分布式锁）。"""
 
-    def __init__(self, redis: RedisService, lock: LockService) -> None:
+    def __init__(
+        self, redis: RedisService, lock: LockService, kafka_producer: KafkaProducerService
+    ) -> None:
         self._redis = redis
         self._lock = lock
+        self._kafka = kafka_producer
 
     # ---- 初始化（SETNX 幂等防重）----
 
@@ -91,7 +97,11 @@ class SeckillService:
     # ---- 下单（Lua 原子操作）----
 
     async def order(self, activity_id: str, user_id: str) -> int:
-        """抢购下单：返回剩余库存（>=0）；-1 售罄；-2 已抢过；-3 活动已封盘。"""
+        """抢购下单：返回剩余库存（>=0）；-1 售罄；-2 已抢过；-3 活动已封盘。
+
+        下单成功后发布一条 `order_created` 事件到 Kafka（业务事件模式）——
+        库存、积分、通知、风控等下游各自订阅同一主题，与下单方解耦。
+        """
         result = await self._redis.eval(
             _SECKILL_ORDER_SCRIPT,
             4,
@@ -102,7 +112,29 @@ class SeckillService:
             user_id,
             str(int(time.time())),
         )
-        return int(result)
+        result = int(result)
+        if result >= 0:  # 下单成功才发事件
+            self._publish_order_created(activity_id, user_id)
+        return result
+
+    def _publish_order_created(self, activity_id: str, user_id: str) -> None:
+        """发布 order_created 事件到 Kafka（非阻塞、at-least-once，下游需幂等）。
+
+        produce 只是把消息写入本地缓冲队列、由后台线程异步发送，故在 async 方法里
+        直接调用不阻塞事件循环；送达结果见 kafka_service._delivery_report。
+        注：若要求「下单成功」与「事件发布」严格一致，生产应改事务性 outbox，
+        本示例演示最常见的事件发布形态（fire-and-forget）。
+        """
+        event = json.dumps(
+            {
+                "event": "order_created",
+                "activity_id": activity_id,
+                "user_id": user_id,
+                "timestamp": time.time(),
+            },
+            ensure_ascii=False,
+        )
+        self._kafka.produce(settings.kafka_order_topic, event, key=user_id)
 
     # ---- 退款（Lua 原子操作）----
 

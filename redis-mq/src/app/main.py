@@ -9,18 +9,14 @@ from app.endpoints import (
     article_poem,
     kafka_endpoints,
     lock,
+    log_collector,
     redis_endpoints,
     score_rank,
     seckill,
     session,
 )
 from app.exception_handlers import register_exception_handlers
-
-# from app.services.kafka_service import (
-#     KafkaAdminService,
-#     KafkaConsumerService,
-#     KafkaProducerService,
-# )
+from app.services.kafka_service import KafkaConsumerService, KafkaProducerService
 from app.services.lock_service import LockService
 from app.services.redis_service import RedisService
 from app.services.seckill_service import SeckillService
@@ -37,14 +33,17 @@ async def lifespan(app: FastAPI):
     """
     app.state.redis = RedisService()
     app.state.lock = LockService(app.state.redis)
-    app.state.seckill = SeckillService(app.state.redis, app.state.lock)
-    # app.state.kafka_producer = KafkaProducerService()
-    # app.state.kafka_consumer = KafkaConsumerService()
-    # app.state.kafka_admin = KafkaAdminService()
+    # Producer / Consumer 惰性连接：创建对象不会立即连 broker，Kafka 未起也不报错
+    app.state.kafka_producer = KafkaProducerService()
+    app.state.kafka_consumer = KafkaConsumerService()
+    # seckill 下单成功会发 order_created 事件，故注入 producer
+    app.state.seckill = SeckillService(
+        app.state.redis, app.state.lock, app.state.kafka_producer
+    )
     yield
     await app.state.redis.aclose()
-    # app.state.kafka_producer.flush()  # 等待未投递消息送达
-    # app.state.kafka_consumer.close()
+    app.state.kafka_producer.flush()  # 等待未投递消息送达
+    app.state.kafka_consumer.close()
 
 
 app = FastAPI(
@@ -57,6 +56,7 @@ register_exception_handlers(app)
 
 app.include_router(redis_endpoints.router)
 app.include_router(kafka_endpoints.router)
+app.include_router(log_collector.router)
 app.include_router(article_poem.router)
 app.include_router(session.router)
 app.include_router(score_rank.router)

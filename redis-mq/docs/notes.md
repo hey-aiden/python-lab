@@ -11,6 +11,7 @@
 4. [redis-py 方法签名约定](#4-redis-py-方法签名约定)
 5. [Key 命名约定](#5-key-命名约定)
 6. [锁与并发控制](#6-锁与并发控制)
+7. [Kafka 业务事件模式](#7-kafka-业务事件模式)
 
 ---
 
@@ -251,3 +252,72 @@ else return -1 end
 | **信号量** | zset 存时间戳，清理过期项后「数量 < 上限」才放行 | 限制最多 N 个并发（连接池、网关限流） | 未实现 |
 | **SETNX 幂等防重** | `SET key value NX` 只成功一次 | 防重复提交、请求 ID 去重 | 可用 `set_nx` 实现 |
 | **原子计数限流** | `INCR` 自增 + 首次 `EXPIRE` | 接口限流、访问量统计 | `incr` / `decr` 已有 |
+
+---
+
+## 7. Kafka 业务事件模式
+
+> 实现见 `src/app/services/seckill_service.py` 与 `src/app/endpoints/seckill.py`。
+> 这是 Kafka 最常见的用法——把「发消息」藏在业务逻辑里当副作用,而不是单独写一个
+> `/kafka/produce` 接口。完整介绍见 `docs/kafka.md`。
+
+Kafka 真实使用分两种形态:
+
+| 形态 | 说明 | 本仓库示例 |
+|------|------|-----------|
+| **A. 日志收集 / 埋点** | 「接收事件并转发」本身就是业务,专用收集端点是合理的 | `POST /log/track` |
+| **B. 业务事件** | 业务接口做自己的事,Kafka 只是副作用 | `SeckillService.order` 发 `order_created` |
+
+### 7.1 在业务 service 里发事件(形态 B)
+
+```python
+class SeckillService:
+    def __init__(self, redis, lock, kafka_producer):  # 注入 producer
+        self._kafka = kafka_producer
+
+    async def order(self, activity_id, user_id):
+        result = await self._redis.eval(...)   # 原业务:扣库存(逻辑不变)
+        result = int(result)
+        if result >= 0:                        # 下单成功才发事件
+            self._publish_order_created(activity_id, user_id)
+        return result
+
+    def _publish_order_created(self, activity_id, user_id):
+        event = json.dumps(
+            {"event": "order_created", "activity_id": activity_id,
+             "user_id": user_id, "timestamp": time.time()},
+            ensure_ascii=False,
+        )
+        self._kafka.produce(settings.kafka_order_topic, event, key=user_id)
+```
+
+要点:
+
+- **Kafka 藏在 service 里**,外面没有裸露的 `/kafka/produce`;下单接口职责不变,只是多了发事件的副作用。
+- `key=user_id`:保证同一用户事件分区内有序。
+- **只在成功分支发事件**:售罄 / 已抢过 / 封盘等失败结果不发布。
+- `produce` 非阻塞,在 async 方法里直接调用即可(见 `kafka_service.py`)。
+
+### 7.2 下游消费解耦
+
+下单方发事件后,「积分 / 通知 / 风控」等下游各自订阅同一主题、互不感知:
+
+```python
+@router.get("/seckill/events")
+async def events(consumer, n: int = 10):
+    consumer.subscribe([settings.kafka_order_topic])
+    for _ in range(n):
+        # poll 是阻塞调用,用 anyio.to_thread 丢到线程池,避免阻塞事件循环
+        msg = await anyio.to_thread.run_sync(consumer.consume, 1.0)
+        if msg is None:
+            break
+        ...
+```
+
+### 7.3 一致性与幂等注意
+
+- 这里是 **fire-and-forget** 事件发布:下单成功与事件发布不是原子事务,极端情况下
+  (发事件后进程崩溃)可能漏发。
+- 若要「下单成功」与「事件发布」严格一致,生产用 **事务性 outbox**:先写本地 outbox
+  表,再由轮询 / CDC 发到 Kafka。
+- 消费者默认 **at-least-once**,需按业务唯一键(如订单号)做幂等去重。

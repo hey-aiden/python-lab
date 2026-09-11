@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     # ---- Kafka ----
     kafka_bootstrap_servers: str = "127.0.0.1:9092"
     kafka_topic: str = "learn-topic"
+    kafka_order_topic: str = "order-events"
     kafka_group_id: str = "learn-group"
     kafka_client_id: str = "redis-mq-app"
     kafka_auto_offset_reset: str = "earliest"

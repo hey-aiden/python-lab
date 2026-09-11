@@ -4,8 +4,11 @@
 编排逻辑（脚本选择、key 顺序、返回码）与分布式锁互斥，不依赖真实 Redis。
 """
 
+import json
+
 import pytest
 
+from app.config import settings
 from app.constants.redis_key import seckill_stock_key
 from app.deps import get_seckill
 from app.main import app
@@ -79,8 +82,22 @@ def _clean_overrides():
     app.dependency_overrides.clear()
 
 
-def _install(fake: _FakeRedisService) -> None:
-    app.dependency_overrides[get_seckill] = lambda: SeckillService(fake, LockService(fake))
+class _FakeProducer:
+    """记录 produce 调用（topic / value / key），模拟 Kafka producer。"""
+
+    def __init__(self):
+        self.calls: list[tuple[str, str, str | None]] = []
+
+    def produce(self, topic: str, value: str, key: str | None = None) -> None:
+        self.calls.append((topic, value, key))
+
+
+def _install(fake: _FakeRedisService) -> _FakeProducer:
+    producer = _FakeProducer()
+    app.dependency_overrides[get_seckill] = lambda: SeckillService(
+        fake, LockService(fake), producer
+    )
+    return producer
 
 
 async def _init(client, activity_id="a1", stock=5):
@@ -229,3 +246,36 @@ async def test_stock_and_result(client):
     assert (await client.get("/seckill/result", params={"activity_id": "a1", "user_id": "u1"})).json()["grabbed"] is False
     await _order(client, user_id="u1")
     assert (await client.get("/seckill/result", params={"activity_id": "a1", "user_id": "u1"})).json()["grabbed"] is True
+
+
+# ---- 业务事件（下单成功发布 order_created 到 Kafka）----
+
+
+async def test_order_publishes_order_created_event(client):
+    fake = _FakeRedisService()
+    producer = _install(fake)
+
+    await _init(client, stock=2)
+    await _order(client, user_id="u1")
+
+    assert len(producer.calls) == 1
+    topic, value, key = producer.calls[0]
+    assert topic == settings.kafka_order_topic
+    assert key == "u1"  # key=user_id，保证同一用户事件有序
+    data = json.loads(value)
+    assert data["event"] == "order_created"
+    assert data["activity_id"] == "a1"
+    assert data["user_id"] == "u1"
+    assert "timestamp" in data
+
+
+async def test_failed_order_does_not_publish_event(client):
+    fake = _FakeRedisService()
+    producer = _install(fake)
+
+    await _init(client, stock=1)
+    await _order(client, user_id="u1")  # 抢到，发 1 条事件
+    r = await _order(client, user_id="u2")  # 售罄，下单失败
+    assert r.json()["success"] is False
+
+    assert len(producer.calls) == 1  # 只有成功那单发了事件

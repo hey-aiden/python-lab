@@ -5,15 +5,18 @@
 
 from typing import Annotated
 
+import anyio
 from fastapi import APIRouter, Depends
 
-from app.deps import get_seckill
+from app.config import settings
+from app.deps import get_kafka_consumer, get_seckill
 from app.schemas.seckill import (
     SeckillCloseRequest,
     SeckillInitRequest,
     SeckillOrderRequest,
     SeckillRefundRequest,
 )
+from app.services.kafka_service import KafkaConsumerService
 from app.services.seckill_service import SeckillService
 
 router = APIRouter(prefix="/seckill", tags=["seckill"])
@@ -82,3 +85,23 @@ async def get_result(
     """查询某用户是否抢到。"""
     grabbed = await seckill.result(activity_id, user_id)
     return {"code": 0, "grabbed": grabbed}
+
+
+@router.get("/events")
+async def events(
+    consumer: Annotated[KafkaConsumerService, Depends(get_kafka_consumer)],
+    n: int = 10,
+):
+    """模拟下游服务消费 order_created 事件（演示业务事件的解耦）。
+
+    下单方（SeckillService.order）发布事件后，这里作为「积分/通知/风控」等下游，
+    订阅同一主题拉取最近的事件。poll 阻塞，用 anyio.to_thread 包装避免阻塞事件循环。
+    """
+    consumer.subscribe([settings.kafka_order_topic])
+    messages = []
+    for _ in range(n):
+        msg = await anyio.to_thread.run_sync(consumer.consume, 1.0)
+        if msg is None:
+            break
+        messages.append(msg)
+    return {"code": 0, "count": len(messages), "data": messages}
